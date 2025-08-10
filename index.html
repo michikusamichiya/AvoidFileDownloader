@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>AvoidFileDownloader</title>
+    <meta charset="utf-8">
+  </head>
+  <body>
+    <h1>AvoidFileDownloader</h1>
+    showDirectoryPickerを用いてChromeのダウンロードのポリシーを回避することを試みます。
+    <input type="text" id="url" placeholder="Download From">
+    <button id="selectFolder">Select your folder will download to</button>
+    <input type="text" id="name" placeholder="Download Name">
+    <button id="download">Run</button>
+    <script>
+    let dirHandle = null;
+    
+    document.getElementById("selectFolder").addEventListener("click", async () => {
+      try {
+        dirHandle = await showDirectoryPicker({ mode: "readwrite" });
+        alert("保存先フォルダを選択しました。");
+      } catch (e) {
+        console.error(e);
+        alert("フォルダ選択がキャンセルされました。");
+      }
+    });
+    
+    document.getElementById("download").addEventListener("click", async () => {
+      if (!dirHandle) {
+        alert("先に保存先フォルダを選択してください。");
+        return;
+      }
+      const url = document.getElementById("url").value.trim();
+      const name = document.getElementById("name").value.trim();
+      if (!url || !name) {
+        alert("URLとファイル名を入力してください。");
+        return;
+      }
+    
+      try {
+        const fileHandle = await dirHandle.getFileHandle(name, { create: true });
+        const writable = await fileHandle.createWritable();
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTPエラー: ${response.status}`);
+        await writable.write(await response.blob());
+        await writable.close();
+        alert(`保存完了: ${name}`);
+      } catch (err) {
+        console.error(err);
+        alert("ダウンロードに失敗しました: " + err.message);
+      }
+    });
+    </script>
+
+  </body>
+</html>
